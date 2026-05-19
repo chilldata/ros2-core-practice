@@ -11,6 +11,8 @@ from turtlesim.msg import Pose
 from geometry_msgs.msg import Twist
 from my_first_package.my_subscriber import TurtlesimSubscriber
 
+from rcl_interfaces.msg import SetParametersResult
+
 class TurtleSub_Action(TurtlesimSubscriber):
     def __init__(self, ac_server):
         super().__init__()
@@ -28,6 +30,30 @@ class DistTurtleServer(Node):
         self.previous_pose = Pose()
         self.publisher = self.create_publisher(Twist,"/turtle1/cmd_vel", 10)
         self.action_server = ActionServer(self, DistTurtle, 'dist_turtle', self.execute_callback)
+        self.declare_parameter('quantile_time', 0.75)
+        self.declare_parameter('almost_goal_time', 0.95)
+
+        (quantile_time, almost_goal_time) = self.get_parameters(
+            ['quantile_time', 'almost_goal_time'])
+        
+        self.quantile_time = quantile_time.value
+        self.almost_goal_time = almost_goal_time.value
+        
+        self.add_on_set_parameters_callback(self.parameter_callback)
+    
+    def parameter_callback(self, params):
+        for param in params:
+            print(param.name, "is changed to", param.value)
+
+            if param.name == 'quantile_time':
+                self.quantile_time = param.value
+
+            if param.name == 'almost_goal_time':
+                self.almost_goal_time =  param.value
+        
+        print('Quantile time and almost goal time are changed', self.quantile_time, self.almost_goal_time)
+        
+        return SetParametersResult(successful=True)
 
     
     def calc_diff_pose(self):
